@@ -67,11 +67,11 @@ func main() {
 	}
 
 	// изменим контент нужных сниппетов и сохраним для проекта
-	b, err := symfony4()
+	b, err := symfony()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = ioutil.WriteFile(filepath.Join(snippetPath, "nginxgen-symfony4-"+*phpVersion+".conf"), b, permission)
+	err = ioutil.WriteFile(filepath.Join(snippetPath, "nginxgen-symfony-"+*phpVersion+".conf"), b, permission)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -135,21 +135,25 @@ func createConfig(logPath string) (b []byte, err error) {
 	b = bytes.ReplaceAll(b, []byte("{proxy_access_log}"), []byte(logPath+"/access-proxy.log main"))
 	b = bytes.ReplaceAll(b, []byte("{proxy_error_log}"), []byte(logPath+"/error-proxy.log"))
 
-	staticDirs := ""
+	staticDirs := []byte("")
 	if *static != "" {
-		var bStaticDirs []byte
-		bStaticDirs, err = getStaticDirs()
+		staticDirs, err = getStaticDirs()
 		if err != nil {
 			return
 		}
-		staticDirs = string(bStaticDirs)
+		s := strings.Split(*static, ",")
+		for i := range s {
+			s[i] = strings.TrimSpace(s[i])
+		}
+		staticDirs = bytes.ReplaceAll(staticDirs, []byte("{dirs}"), []byte(strings.Join(s, "|")))
 	}
-	b = bytes.ReplaceAll(b, []byte("{static-dirs}"), []byte(staticDirs))
+
+	b = bytes.ReplaceAll(b, []byte("{static-dirs}"), staticDirs)
 	return
 }
 
-func symfony4() (b []byte, err error) {
-	b, err = ioutil.ReadFile(filepath.Join(templates, "symfony4.conf"))
+func symfony() (b []byte, err error) {
+	b, err = ioutil.ReadFile(filepath.Join(templates, "symfony.conf"))
 	if err != nil {
 		return
 	}
