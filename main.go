@@ -130,9 +130,9 @@ func createConfig(logPath string) (b []byte, err error) {
 	b = bytes.ReplaceAll(b, []byte("{listen_proxy}"), []byte(listenProxy))
 	b = bytes.ReplaceAll(b, []byte("{php-version}"), []byte(*phpVersion))
 
-	b = bytes.ReplaceAll(b, []byte("{access_log}"), []byte(logPath+"/access.log main"))
+	b = bytes.ReplaceAll(b, []byte("{access_log}"), []byte(logPath+"/access.log"))
 	b = bytes.ReplaceAll(b, []byte("{error_log}"), []byte(logPath+"/error.log"))
-	b = bytes.ReplaceAll(b, []byte("{proxy_access_log}"), []byte(logPath+"/access-proxy.log main"))
+	b = bytes.ReplaceAll(b, []byte("{proxy_access_log}"), []byte(logPath+"/access-proxy.log"))
 	b = bytes.ReplaceAll(b, []byte("{proxy_error_log}"), []byte(logPath+"/error-proxy.log"))
 
 	staticDirs := []byte("")
@@ -146,6 +146,7 @@ func createConfig(logPath string) (b []byte, err error) {
 			s[i] = strings.TrimSpace(s[i])
 		}
 		staticDirs = bytes.ReplaceAll(staticDirs, []byte("{dirs}"), []byte(strings.Join(s, "|")))
+		staticDirs = bytes.ReplaceAll(staticDirs, []byte("{root}"), []byte(*root))
 	}
 
 	b = bytes.ReplaceAll(b, []byte("{static-dirs}"), staticDirs)
