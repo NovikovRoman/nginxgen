@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 )
 
-func saveSnippets(snippetPath string, snippetName ...string) error {
+func saveSnippets(snippetPath string, snippetName ...string) (err error) {
 	for _, name := range snippetName {
-		err := copySnippet(snippetPath, name)
-		if err != nil && err != io.EOF {
-			return err
+		if err = copySnippet(snippetPath, name); err != nil && err != io.EOF {
+			return
 		}
 	}
 	return nil
@@ -22,8 +21,13 @@ func copySnippet(snippetPath string, name string) error {
 }
 
 func copyFile(src, dst string, buffersize int64) (err error) {
-	sourceFileStat, err := os.Stat(src)
-	if err != nil {
+	var (
+		sourceFileStat os.FileInfo
+		destination    *os.File
+		source         *os.File
+	)
+
+	if sourceFileStat, err = os.Stat(src); err != nil {
 		return
 	}
 
@@ -31,8 +35,7 @@ func copyFile(src, dst string, buffersize int64) (err error) {
 		return fmt.Errorf("%s is not a regular file. ", src)
 	}
 
-	source, err := os.Open(src)
-	if err != nil {
+	if source, err = os.Open(src); err != nil {
 		return err
 	}
 	defer func() {
@@ -41,8 +44,7 @@ func copyFile(src, dst string, buffersize int64) (err error) {
 		}
 	}()
 
-	destination, err := os.Create(dst)
-	if err != nil {
+	if destination, err = os.Create(dst); err != nil {
 		return err
 	}
 	defer func() {
@@ -50,10 +52,6 @@ func copyFile(src, dst string, buffersize int64) (err error) {
 			err = derr
 		}
 	}()
-
-	if err != nil {
-		return
-	}
 
 	buf := make([]byte, buffersize)
 	n := 0

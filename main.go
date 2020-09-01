@@ -24,15 +24,18 @@ var (
 
 	// Обязательные
 	phpVersion = flag.String("php-version", "", "Версия PHP (7.2, 7.4).")
-	root       = flag.String("root", "", "Абсолютный путь до public.")
+	root       = flag.String("root", "", "Абсолютный путь до директории проекта.")
 	domain     = flag.String("domain", "", "Домен без www.")
 	proxyPort  = flag.Int("proxy", 0, "Порт proxy.")
 
 	// Необязательные
+	public = flag.String("public", "public", "Относительный путь до public директории от директории проекта.")
 	static = flag.String("static", "",
 		"Директории в public со статическим контентом через запятую (css, image, files …).")
 	ip    = flag.String("ip", "", "IP сервера.")
 	https = flag.Bool("https", false, "С https")
+
+	publicPath string
 )
 
 func main() {
@@ -42,7 +45,8 @@ func main() {
 		log.Fatalln(help())
 	}
 
-	projectPath := regexp.MustCompile(`(?si)/[^/]+$`).ReplaceAllString(*root, "")
+	projectPath := regexp.MustCompile(`(?si)/\s*$`).ReplaceAllString(*root, "")
+	publicPath = projectPath + "/" + regexp.MustCompile(`(?si)(^\s*/|/\s*$)`).ReplaceAllString(*public, "")
 
 	configPath := filepath.Join(projectPath, "nginxgen")
 	if err := os.MkdirAll(configPath, permissionDirectory); err != nil {
@@ -66,9 +70,9 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	var b []byte
 	// изменим контент нужных сниппетов и сохраним для проекта
-	b, err := symfony()
-	if err != nil {
+	if b, err = symfony(); err != nil {
 		log.Fatalln(err)
 	}
 	err = ioutil.WriteFile(filepath.Join(snippetPath, "nginxgen-symfony-"+*phpVersion+".conf"), b, permission)
@@ -113,7 +117,7 @@ func createConfig(logPath string) (b []byte, err error) {
 	}
 
 	b = bytes.ReplaceAll(b, []byte("{domain}"), []byte(*domain))
-	b = bytes.ReplaceAll(b, []byte("{root}"), []byte(*root))
+	b = bytes.ReplaceAll(b, []byte("{public}"), []byte(publicPath))
 	b = bytes.ReplaceAll(b, []byte("{proxy}"), []byte(strconv.Itoa(*proxyPort)))
 
 	listen80 := "80"
@@ -146,7 +150,7 @@ func createConfig(logPath string) (b []byte, err error) {
 			s[i] = strings.TrimSpace(s[i])
 		}
 		staticDirs = bytes.ReplaceAll(staticDirs, []byte("{dirs}"), []byte(strings.Join(s, "|")))
-		staticDirs = bytes.ReplaceAll(staticDirs, []byte("{root}"), []byte(*root))
+		staticDirs = bytes.ReplaceAll(staticDirs, []byte("{public}"), []byte(publicPath))
 	}
 
 	b = bytes.ReplaceAll(b, []byte("{static-dirs}"), staticDirs)
