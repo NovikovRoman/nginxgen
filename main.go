@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -20,30 +20,31 @@ const (
 )
 
 var (
-	// symfony    = flag.Bool("symfony", false, "Конфигурация для symfony 4.")
-
 	// Обязательные
-	phpVersion = flag.String("php-version", "", "Версия PHP (7.2, 7.4).")
-	root       = flag.String("root", "", "Абсолютный путь до директории проекта.")
-	domain     = flag.String("domain", "", "Домен без www.")
-	proxyPort  = flag.Int("proxy", 0, "Порт proxy.")
+	phpVersion = kingpin.Flag("php", "Версия PHP (7.2, 7.4 и тп).").Required().String()
+	root       = kingpin.Flag("root", "Абсолютный путь до директории проекта.").Required().String()
+	domain     = kingpin.Flag("domain", "Домен без www.").Required().String()
 
 	// Необязательные
-	public = flag.String("public", "public", "Относительный путь до public директории от директории проекта.")
-	static = flag.String("static", "",
-		"Директории в public со статическим контентом через запятую (css, image, files …).")
-	ip    = flag.String("ip", "", "IP сервера.")
-	https = flag.Bool("https", false, "С https")
+	proxyPort = kingpin.Flag("proxy-port", "Порт proxy.").Short('p').Default("80").Int()
 
-	publicPath string
+	public = kingpin.Flag("public", "Относительный путь до public директории от директории проекта.").
+		Default("/public").String()
+
+	static = kingpin.Flag("static",
+		"Директории в public со статическим контентом через запятую (css, image, files …).").String()
+
+	ip = kingpin.Flag("ip", "IP сервера.").String()
+
+	ssl = kingpin.Flag("ssl", "С SSL-серитификатом.").Short('s').Bool()
+
+	publicPath  string
+	proxyDomain string
 )
 
 func main() {
-	flag.Parse()
-
-	if *phpVersion == "" || *root == "" || *domain == "" || *proxyPort <= 0 {
-		log.Fatalln(help())
-	}
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
 
 	projectPath := regexp.MustCompile(`(?si)/\s*$`).ReplaceAllString(*root, "")
 	publicPath = projectPath + "/" + regexp.MustCompile(`(?si)(^\s*/|/\s*$)`).ReplaceAllString(*public, "")
@@ -94,6 +95,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	proxyDomain = "proxy_" + regexp.MustCompile(`\.`).ReplaceAllString(*domain, "_")
+
 	b, err = createConfig(logPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -101,11 +104,11 @@ func main() {
 
 	err = ioutil.WriteFile(filepath.Join(configPath, *domain+".conf"), b, permission)
 
-	fmt.Println(aboutLogFormat())
+	fmt.Println(aboutLogFormat(proxyDomain))
 }
 
 func createConfig(logPath string) (b []byte, err error) {
-	if *https {
+	if *ssl {
 		b, err = ioutil.ReadFile(filepath.Join(templates, "https.conf"))
 
 	} else {
@@ -129,6 +132,7 @@ func createConfig(logPath string) (b []byte, err error) {
 		listenProxy = *ip + ":" + listenProxy
 	}
 
+	b = bytes.ReplaceAll(b, []byte("{proxy_domain}"), []byte(proxyDomain))
 	b = bytes.ReplaceAll(b, []byte("{listen_80}"), []byte(listen80))
 	b = bytes.ReplaceAll(b, []byte("{listen_443}"), []byte(listen443))
 	b = bytes.ReplaceAll(b, []byte("{listen_proxy}"), []byte(listenProxy))

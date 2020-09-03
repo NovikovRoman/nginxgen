@@ -1,23 +1,10 @@
 package main
 
-func help() string {
-	// -symfony=…		- для Symfony 4.
-	return `
--php-version=…	- Версия PHP (7.2, 7.4).
--root=…		- Абсолютный путь до директории проекта.
--domain=…	- Домен без www.
--proxy=…	- Порт proxy.
-
--public=…   - Относительный путь до public директории от директории проекта. По-умолчанию «public». Необязательно.
--static=…	- Директории в public со статическим контентом через запятую (css, image, files …). Необязательно.
--ip=…		- IP сервера. Необязательно.
--https		- C https. Необязательно.
-`
-}
-
-func aboutLogFormat() string {
-	return `
-Добавьте в nginx.conf:
+func aboutLogFormat(proxyDomain string) (res string) {
+	var hr = "---------------------------------------"
+	res = hr + "\nДобавить в /etc/hosts:\n127.0.0.1    " + proxyDomain + "\nили заменить на свой backend host\n" + hr
+	res += `
+Добавить в nginx.conf:
 http {
 	…
 	proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=all:32m max_size=1g inactive=60m use_temp_path=off;
@@ -34,4 +21,5 @@ http {
 Перезапустите nginx:
 service nginx restart
 `
+	return res + hr
 }
