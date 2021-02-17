@@ -104,7 +104,7 @@ func main() {
 
 	err = ioutil.WriteFile(filepath.Join(configPath, *domain+".conf"), b, permission)
 
-	fmt.Println(aboutLogFormat(proxyDomain))
+	fmt.Println(aboutLogFormat( *domain,proxyDomain, *root))
 }
 
 func createConfig(logPath string) (b []byte, err error) {
