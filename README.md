@@ -43,7 +43,7 @@ Flags:
 Пример:
 
 ```
-nginxgen --php=7.4 --root=/home/user/project/ --domain=site.ru --public=/public
+nginxgen --php=7.4 --root=/var/www/project/ --domain=site.ru --public=/public
 ```
 
 # SSL
@@ -58,7 +58,7 @@ sudo apt install dehydrated
 
 ## Домены
 
-Прописываем домены:
+Прописать домены:
 
 ```
 sudo nano /etc/dehydrated/domains.txt
